@@ -1,5 +1,8 @@
 # Environment
 .env
 
+# dependencies
+node_modules/
+
 # Nodemailer config
 config/nodemailer.js
