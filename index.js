@@ -1,13 +1,12 @@
 import express from "express";
 import http from "http";
 import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 import { connectDB } from "./config/db.js";
 import userRouter from "./routes/user.routes.js";
 import riderRouter from "./routes/rider.routes.js";
 import { Server } from "socket.io";
-
-dotenv.config();
+import rideRouter from "./routes/ride.routes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -35,6 +34,24 @@ io.on('connection', (socket) => {
     io.emit('ride_accept', msg)
   })
 
+  socket.on('rider_location', (data) => {
+    console.log('rider location:', data)
+    io.emit('rider_location', data)
+  })
+
+  socket.on('ride_start', (msg) => {
+    io.emit('ride_start', msg)
+    console.log(msg)
+  })
+
+  socket.on('rider_cancelled_ride', (msg) => {
+    io.emit('rider_cancelled_ride', msg)
+  })
+  
+  socket.on('user_cancelled_ride', (msg) => {
+    io.emit('user_cancelled_ride', msg)
+  })
+
   socket.on('disconnect', () => {
     console.log('user disconnected')
   })
@@ -43,9 +60,11 @@ io.on('connection', (socket) => {
 // REST routes
 app.use("/ride", userRouter);
 app.use("/ride", riderRouter);
+app.use("/ride", rideRouter);
 
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, async () => {
-  console.log(`🚀 Server listening on ${PORT}`);
   await connectDB();
+  console.log(`🚀 Server listening on ${PORT}`);
 });
