@@ -7,6 +7,7 @@ import userRouter from "./routes/user.routes.js";
 import riderRouter from "./routes/rider.routes.js";
 import { Server } from "socket.io";
 import rideRouter from "./routes/ride.routes.js";
+import rideModel from "./models/ride.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -52,6 +53,10 @@ io.on('connection', (socket) => {
     io.emit('user_cancelled_ride', msg)
   })
 
+  socket.on('ride_complete', (msg) => {
+    io.emit('ride_complete', msg)
+  })
+
   socket.on('disconnect', () => {
     console.log('user disconnected')
   })
@@ -61,6 +66,27 @@ io.on('connection', (socket) => {
 app.use("/ride", userRouter);
 app.use("/ride", riderRouter);
 app.use("/ride", rideRouter);
+
+app.get('/ride/get', async (req, res) => {
+  try {
+    const data = await rideModel.find()
+    if (!data) return res.status(500).json({ success: false, msg: 'data fetch failed'})
+    res.status(201).json({ success: true, msg: 'found all collection', data})
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, msg: 'deletion failed'})
+  }
+})
+
+app.post('/ride/deleteall', async (req, res) => {
+  try {
+    await rideModel.deleteMany({})
+    res.status(201).json({ success: true, msg: 'deleted all collection'})
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, msg: 'deletion failed'})
+  }
+})
 
 const PORT = process.env.PORT || 3000;
 

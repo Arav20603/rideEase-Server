@@ -29,11 +29,14 @@ export const createRide = async (req, res) => {
 export const completeRide = async (req, res) => {
   try {
     const { rideId } = req.params;
+    const { paymentMode } = req.body
     const ride = await Ride.findById(rideId);
     if (!ride) return res.status(404).json({ success: false, message: "Ride not found" });
 
     ride.status = "completed";
+    ride.paymentMode = paymentMode | ride.paymentMode
     ride.completedAt = new Date();
+    console.log('Payment mode before save:', ride.paymentMode);
     await ride.save();
 
     res.status(200).json({ success: true, ride });
