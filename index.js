@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
   socket.on('rider_cancelled_ride', (msg) => {
     io.emit('rider_cancelled_ride', msg)
   })
-  
+
   socket.on('user_cancelled_ride', (msg) => {
     io.emit('user_cancelled_ride', msg)
   })
@@ -56,6 +56,45 @@ io.on('connection', (socket) => {
   socket.on('ride_complete', (msg) => {
     io.emit('ride_complete', msg)
   })
+
+  socket.on('multi_user_request', (payload) => {
+    console.log('multi_user_request received', payload.bookingId, 'segments:', payload.segments?.length);
+
+    if (!payload?.segments || !Array.isArray(payload.segments)) {
+      return;
+    }
+
+    let cumulativeDelay = 0;
+
+    payload.segments.forEach((segment, i) => {
+      const segDurationMs = Math.max((segment.durationSec || 10) * 1000, 8000);
+      const emitDelay = cumulativeDelay;
+
+      setTimeout(() => {
+        const msg = {
+          bookingId: payload.bookingId,
+          segmentIndex: i,
+          totalSegments: payload.segments.length,
+          segment,
+          origin: payload.origin,
+          destination: payload.destination,
+          user: payload.user,
+          createdAt: payload.createdAt,
+        };
+        console.log('Emitting user_request for segment', i, msg.bookingId);
+        io.emit('user_request', msg);
+      }, emitDelay);
+
+      cumulativeDelay += segDurationMs;
+    });
+
+    io.emit('multi_sequence_started', {
+      bookingId: payload.bookingId,
+      totalSegments: payload.segments.length,
+      startedAt: new Date().toISOString(),
+    });
+  });
+
 
   socket.on('disconnect', () => {
     console.log('user disconnected')
@@ -70,21 +109,21 @@ app.use("/ride", rideRouter);
 app.get('/ride/get', async (req, res) => {
   try {
     const data = await rideModel.find()
-    if (!data) return res.status(500).json({ success: false, msg: 'data fetch failed'})
-    res.status(201).json({ success: true, msg: 'found all collection', data})
+    if (!data) return res.status(500).json({ success: false, msg: 'data fetch failed' })
+    res.status(201).json({ success: true, msg: 'found all collection', data })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ success: false, msg: 'deletion failed'})
+    res.status(500).json({ success: false, msg: 'deletion failed' })
   }
 })
 
 app.post('/ride/deleteall', async (req, res) => {
   try {
     await rideModel.deleteMany({})
-    res.status(201).json({ success: true, msg: 'deleted all collection'})
+    res.status(201).json({ success: true, msg: 'deleted all collection' })
   } catch (error) {
     console.log(error)
-    res.status(500).json({ success: false, msg: 'deletion failed'})
+    res.status(500).json({ success: false, msg: 'deletion failed' })
   }
 })
 
